@@ -126,7 +126,7 @@ func requestLogger(logger *slog.Logger) gin.HandlerFunc {
 			"method", ctx.Request.Method,
 			"path", ctx.Request.URL.Path,
 			"status", ctx.Writer.Status(),
-			"duration", time.Since(start),
+			"durationMs", float64(time.Since(start).Microseconds())/1000,
 			"clientIp", ctx.ClientIP(),
 		)
 	}
@@ -158,23 +158,32 @@ func (a *Api) subscribe() gin.HandlerFunc {
 
 		email, err := normalizeEmail(request.Mail)
 		if err != nil {
+			a.logger.Info("Subscribe request rejected", "reason", "invalid_email")
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid_email"})
 			return
 		}
 
 		if !a.captcha.CreateAssessment(request.ReCaptchaToken, "subscribe") {
+			a.logger.Info("Subscribe request rejected", "reason", "captcha_failed")
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "captcha_failed"})
 			return
 		}
 
+		// Subscribers are logged by id only, so mail addresses stay out of shipped logs.
 		subscriber, found := a.subscriberRepo.GetSubscriberByEmail(email)
-		if !found {
+		switch {
+		case !found:
 			subscriber, err = a.subscriberRepo.InsertSubscriber(email)
 			if err != nil {
 				a.logger.Error("Failed to insert subscriber", "error", err)
 				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "server_error"})
 				return
 			}
+			a.logger.Info("New subscriber added", "subscriberId", subscriber.Id)
+		case subscriber.EmailValidated:
+			a.logger.Info("Subscribe request for an already confirmed subscriber", "subscriberId", subscriber.Id)
+		default:
+			a.logger.Info("Resending validation mail to unconfirmed subscriber", "subscriberId", subscriber.Id)
 		}
 
 		// Unconfirmed addresses get the link again, in case the first mail was lost.
@@ -193,6 +202,7 @@ func (a *Api) confirmPage(codeParameter string, content page) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		code := ctx.Query(codeParameter)
 		if code == "" {
+			a.logger.Info("Link opened without code", "path", ctx.Request.URL.Path)
 			ctx.HTML(http.StatusNotFound, "message.html", a.invalidLinkPage())
 			return
 		}
@@ -205,12 +215,14 @@ func (a *Api) confirmPage(codeParameter string, content page) gin.HandlerFunc {
 func (a *Api) validate() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if !a.subscriberRepo.ValidateEmail(ctx.Query("validationcode")) {
+			a.logger.Info("Subscription confirmation with unknown code")
 			ctx.HTML(http.StatusNotFound, "message.html", page{
 				Title:   "Link nicht gültig",
 				Message: "Dieser Bestätigungslink ist nicht mehr gültig. Bitte melden Sie sich erneut an.",
 			})
 			return
 		}
+		a.logger.Info("Subscription confirmed")
 		ctx.HTML(http.StatusOK, "message.html", page{
 			Title:   "Anmeldung bestätigt",
 			Message: "Sie erhalten ab sofort eine E-Mail, sobald sich der Referenzzinssatz ändert.",
@@ -223,9 +235,11 @@ func (a *Api) validate() gin.HandlerFunc {
 func (a *Api) unsubscribe() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if !a.subscriberRepo.Unsubscribe(ctx.Query("unsubscribecode")) {
+			a.logger.Info("Unsubscribe with unknown code")
 			ctx.HTML(http.StatusNotFound, "message.html", a.invalidLinkPage())
 			return
 		}
+		a.logger.Info("Subscriber unsubscribed")
 		ctx.HTML(http.StatusOK, "message.html", page{
 			Title:   "Abgemeldet",
 			Message: "Sie erhalten keine E-Mails mehr zu Änderungen des Referenzzinssatzes.",
