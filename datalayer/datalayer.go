@@ -105,6 +105,7 @@ func migrate(logger *slog.Logger, db *sql.DB) {
 			logger.Error("Failed to migrate database", "version", version+1, "error", err)
 			os.Exit(1)
 		}
+		logger.Info("Applied database migration", "version", version+1)
 	}
 }
 

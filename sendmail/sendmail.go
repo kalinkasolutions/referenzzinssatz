@@ -76,10 +76,15 @@ func (s *SendMail) SendValidationMail(subscriber subscriberrepo.Subscriber) bool
 		s.logger.Error("Failed to render validation mail", "error", err)
 		return false
 	}
-	return s.send(s.newMessage(subscriber.Email, "Bitte bestätigen Sie Ihre Anmeldung", body, ""))
+	if !s.send(s.newMessage(subscriber.Email, "Bitte bestätigen Sie Ihre Anmeldung", body, "")) {
+		return false
+	}
+	s.logger.Info("Validation mail sent", "subscriberId", subscriber.Id)
+	return true
 }
 
 func (s *SendMail) SendReferenzZinssatzUpdate(newest interestraterepo.InterestRate, previous interestraterepo.InterestRate, subscribers []subscriberrepo.Subscriber) {
+	s.logger.Info("Sending reference interest rate update", "subscribers", len(subscribers))
 	subject := "Der Referenzzinssatz beträgt neu " + web.Percent(newest.ReferenceInterestRate)
 	sent := 0
 	for _, subscriber := range subscribers {
@@ -132,7 +137,7 @@ func (s *SendMail) send(msg message) bool {
 	auth := smtp.PlainAuth("", s.config.SMTP_Username, s.config.SMTP_Password, s.config.SMTP_Host)
 	err := smtp.SendMail(s.config.SMTP_Host+":"+s.config.SMTP_Port, auth, s.config.SMTP_Username, []string{msg.To}, buildMessage(msg))
 	if err != nil {
-		s.logger.Error("Failed to send mail", "to", msg.To, "error", err)
+		s.logger.Error("Failed to send mail", "subject", msg.Subject, "error", err)
 		return false
 	}
 	return true

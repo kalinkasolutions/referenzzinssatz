@@ -26,6 +26,20 @@ type Config struct {
 	RecaptchaMinScore          float32
 	TrustedProxies             []string
 	Debug                      bool
+	Loki                       LokiConfig
+}
+
+// LokiConfig enables shipping logs to Grafana Loki; an empty Url turns it off.
+type LokiConfig struct {
+	// Url is the Loki address, e.g. http://loki.example.ch:3100; the push path is added if missing.
+	Url string
+	// Username and Password are sent as basic auth, as Grafana Cloud expects.
+	Username string
+	Password string
+	// TenantId is sent as X-Scope-OrgID for multi-tenant Loki setups.
+	TenantId string
+	// Labels are added to every stream, next to service_name.
+	Labels map[string]string
 }
 
 // BaseUrl is the public address used in links that are sent by mail.

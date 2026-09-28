@@ -72,5 +72,6 @@ func (r *Recaptcha) CreateAssessment(token string, recaptchaAction string) bool 
 		r.logger.Warn("reCAPTCHA score below minimum", "score", score, "minimum", r.config.RecaptchaMinScore)
 		return false
 	}
+	r.logger.Info("reCAPTCHA passed", "score", score)
 	return true
 }

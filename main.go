@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/kalinkasolutions/referenzzinssatz/api"
@@ -11,6 +13,7 @@ import (
 	"github.com/kalinkasolutions/referenzzinssatz/datalayer"
 	"github.com/kalinkasolutions/referenzzinssatz/dblog"
 	"github.com/kalinkasolutions/referenzzinssatz/interestrateparser"
+	"github.com/kalinkasolutions/referenzzinssatz/loki"
 	"github.com/kalinkasolutions/referenzzinssatz/recaptcha"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/interestraterepo"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/logrepo"
@@ -21,8 +24,9 @@ import (
 const (
 	checkInterval = 24 * time.Hour
 	logRetention  = 90 * 24 * time.Hour
-	// Info-level lines such as every HTTP request stay in the console only.
+	// Info-level lines such as every HTTP request stay out of the database; Loki gets them all.
 	storedLogLevel = slog.LevelWarn
+	dateFormat     = "2006-01-02"
 )
 
 func main() {
@@ -39,10 +43,21 @@ func main() {
 	if config.Debug {
 		consoleLevel.Set(slog.LevelDebug)
 	}
-	db := datalayer.NewDb(logger, config)
 
+	// Loki joins as soon as the config is known, so it also sees the database setup.
+	handlers := []slog.Handler{console}
+	if config.Loki.Url != "" {
+		lokiWriter := loki.NewWriter(config.Loki)
+		handlers = append(handlers, slog.NewJSONHandler(lokiWriter, &slog.HandlerOptions{Level: consoleLevel}))
+		go flushOnShutdown(lokiWriter)
+		logger = slog.New(slog.NewMultiHandler(handlers...))
+		logger.Info("Shipping logs to Loki", "url", loki.PushUrl(config.Loki.Url))
+	}
+
+	db := datalayer.NewDb(logger, config)
 	logRepo := logrepo.NewLogRepository(db)
-	logger = slog.New(slog.NewMultiHandler(console, dblog.NewHandler(logRepo, storedLogLevel)))
+	handlers = append(handlers, dblog.NewHandler(logRepo, storedLogLevel))
+	logger = slog.New(slog.NewMultiHandler(handlers...))
 	slog.SetDefault(logger)
 
 	subscriberRepo := subscriberrepo.NewSubscriberRepository(logger, db)
@@ -57,6 +72,16 @@ func main() {
 	})
 
 	api.NewApi(config, logger, subscriberRepo, interestRateRepo, sendMail, captcha).Load()
+}
+
+// flushOnShutdown pushes the last collected lines when the container is stopped.
+func flushOnShutdown(lokiWriter *loki.Writer) {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	<-signals
+	slog.Info("Shutting down")
+	lokiWriter.Flush()
+	os.Exit(0)
 }
 
 // runEvery runs job right away and then after every interval, so a restart never delays a check.
@@ -76,6 +101,7 @@ func notifyOnNewInterestRate(
 	subscriberRepo subscriberrepo.ISubscriberRepository,
 	sendMail sendmail.ISendMail,
 ) {
+	logger.Info("Checking reference interest rate")
 	previous, hadPrevious := interestRateRepo.GetNewest()
 
 	inserted, err := parser.ExtractInterestRate()
@@ -86,8 +112,16 @@ func notifyOnNewInterestRate(
 	logger.Info("Checked reference interest rate", "newEntries", len(inserted))
 
 	current, _ := interestRateRepo.GetNewest()
-	if !hadPrevious || current.Id == previous.Id {
-		return
+	switch {
+	case !hadPrevious:
+		logger.Info("First scrape, nothing to compare with, no mails sent", "rate", current.ReferenceInterestRate, "validFrom", current.ValidFrom.Format(dateFormat))
+	case current.Id == previous.Id:
+		logger.Info("Reference interest rate unchanged", "rate", current.ReferenceInterestRate, "validFrom", current.ValidFrom.Format(dateFormat))
+	default:
+		logger.Info("Reference interest rate changed, notifying subscribers",
+			"previousRate", previous.ReferenceInterestRate,
+			"rate", current.ReferenceInterestRate,
+			"validFrom", current.ValidFrom.Format(dateFormat))
+		sendMail.SendReferenzZinssatzUpdate(current, previous, subscriberRepo.GetValidatedSubscribers())
 	}
-	sendMail.SendReferenzZinssatzUpdate(current, previous, subscriberRepo.GetValidatedSubscribers())
 }

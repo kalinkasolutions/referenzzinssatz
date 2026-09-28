@@ -48,6 +48,7 @@ services:
 | `TrustedProxies` | Addresses of reverse proxies whose `X-Forwarded-For` header is trusted. |
 | `ReferenzZinssatzUrl` | Optional. Defaults to the BWO page above. |
 | `Debug` | Enables debug-level logging and gin's debug mode. |
+| `Loki` | Optional log shipping to [Grafana Loki](https://grafana.com/oss/loki/), see below. |
 
 ## Development
 
@@ -61,5 +62,21 @@ go run . -configPath ./conf.json
 
 Templates and static files live in `web/` and are embedded into the binary.
 
+## Logging
+
 Logs are written with `log/slog` to stdout. Warnings and errors are also kept in the `Logs` table
-for 90 days, with their fields as JSON in the `Attributes` column.
+for 90 days, with their fields as JSON in the `Attributes` column. Subscribers appear in logs by id,
+never by mail address.
+
+With `Loki.Url` set, every log line from Info up (Debug up with `Debug: true`) is also pushed to
+Loki as JSON, every two seconds. Lines are dropped rather than queued when Loki is unreachable.
+
+| `Loki` key | Meaning |
+| --- | --- |
+| `Url` | Loki address, e.g. `http://loki.example.ch:3100`. `/loki/api/v1/push` is added unless the URL already has a path. Empty turns shipping off. |
+| `Username`, `Password` | Basic auth. For Grafana Cloud: the Loki user id and an access policy token. |
+| `TenantId` | Sent as `X-Scope-OrgID`, for multi-tenant Loki. |
+| `Labels` | Extra stream labels. `service_name` is `referenzzinssatz` unless set here. |
+
+In Grafana, `{service_name="referenzzinssatz"} | json` shows the fields, e.g.
+`| json | msg="HTTP request" | status >= 400`.

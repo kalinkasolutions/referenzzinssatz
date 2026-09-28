@@ -13,5 +13,12 @@
     "ReCaptchaProjectID": "your-google-cloud-project-id",
     "RecaptchaMinScore": 0.7,
     "TrustedProxies": ["127.0.0.1"],
-    "Debug": false
+    "Debug": false,
+    "Loki": {
+        "Url": "",
+        "Username": "",
+        "Password": "",
+        "TenantId": "",
+        "Labels": { "environment": "production" }
+    }
 }
