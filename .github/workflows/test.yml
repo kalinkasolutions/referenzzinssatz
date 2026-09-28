@@ -4,6 +4,8 @@ on:
   push:
     branches: [master]
   pull_request:
+  # Lets the release workflow run the tests before it publishes an image.
+  workflow_call:
 
 jobs:
   test:
