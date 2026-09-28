@@ -10,6 +10,7 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -21,6 +22,7 @@ import (
 
 const (
 	serviceName   = "referenzzinssatz"
+	pushPath      = "/loki/api/v1/push"
 	flushInterval = 2 * time.Second
 	maxBatchSize  = 500
 	// While Loki is unreachable, lines beyond this are dropped instead of piling up in memory.
@@ -30,6 +32,7 @@ const (
 
 type Writer struct {
 	config   config.LokiConfig
+	pushUrl  string
 	labels   map[string]string
 	client   *http.Client
 	flushNow chan struct{}
@@ -60,6 +63,7 @@ func NewWriter(lokiConfig config.LokiConfig) *Writer {
 
 	writer := &Writer{
 		config:   lokiConfig,
+		pushUrl:  PushUrl(lokiConfig.Url),
 		labels:   labels,
 		client:   &http.Client{Timeout: pushTimeout},
 		flushNow: make(chan struct{}, 1),
@@ -126,7 +130,7 @@ func (w *Writer) push(batch []entry) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), pushTimeout)
 	defer cancel()
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, w.config.Url, bytes.NewReader(body))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, w.pushUrl, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -148,6 +152,17 @@ func (w *Writer) push(batch []entry) error {
 		return fmt.Errorf("loki answered %s: %s", response.Status, strings.TrimSpace(string(detail)))
 	}
 	return nil
+}
+
+// PushUrl accepts either the full push endpoint or just the Loki address,
+// e.g. http://loki.example.ch:3100, and adds the push path to the latter.
+func PushUrl(configured string) string {
+	parsed, err := url.Parse(configured)
+	if err != nil || (parsed.Path != "" && parsed.Path != "/") {
+		return configured
+	}
+	parsed.Path = pushPath
+	return parsed.String()
 }
 
 // buildPushRequest puts all lines in one stream; Loki wants timestamps as nanosecond strings.

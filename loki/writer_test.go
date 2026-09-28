@@ -100,7 +100,7 @@ func TestFullBatchIsPushedWithoutWaitingForTicker(t *testing.T) {
 
 func TestPushReportsLokiErrors(t *testing.T) {
 	server, _ := newLokiStub(t, http.StatusBadRequest)
-	writer := &Writer{config: config.LokiConfig{Url: server.URL}, client: http.DefaultClient}
+	writer := &Writer{pushUrl: server.URL, client: http.DefaultClient}
 
 	err := writer.push([]entry{{timestamp: time.Now(), line: "x"}})
 
@@ -119,4 +119,32 @@ func TestBuildPushRequestUsesNanosecondTimestamps(t *testing.T) {
 	request := buildPushRequest(map[string]string{"service_name": "x"}, []entry{{timestamp: timestamp, line: "hello"}})
 
 	assert.Equal(t, [2]string{"1756800000000000123", "hello"}, request.Streams[0].Values[0])
+}
+
+func TestPushUrlAddsPathToBareAddress(t *testing.T) {
+	cases := map[string]string{
+		"http://docker.lqy.ch:3100":                        "http://docker.lqy.ch:3100/loki/api/v1/push",
+		"http://docker.lqy.ch:3100/":                       "http://docker.lqy.ch:3100/loki/api/v1/push",
+		"https://logs-prod-012.grafana.net":                "https://logs-prod-012.grafana.net/loki/api/v1/push",
+		"http://docker.lqy.ch:3100/loki/api/v1/push":       "http://docker.lqy.ch:3100/loki/api/v1/push",
+		"https://proxy.example.ch/custom/loki/api/v1/push": "https://proxy.example.ch/custom/loki/api/v1/push",
+	}
+	for configured, expected := range cases {
+		assert.Equal(t, expected, PushUrl(configured))
+	}
+}
+
+func TestBareAddressReceivesPushesOnPushPath(t *testing.T) {
+	paths := make(chan string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths <- r.URL.Path
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+	writer := NewWriter(config.LokiConfig{Url: server.URL})
+
+	writer.Write([]byte("line\n"))
+	writer.Flush()
+
+	assert.Equal(t, "/loki/api/v1/push", <-paths)
 }

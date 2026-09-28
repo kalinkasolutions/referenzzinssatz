@@ -31,7 +31,7 @@ type Config struct {
 
 // LokiConfig enables shipping logs to Grafana Loki; an empty Url turns it off.
 type LokiConfig struct {
-	// Url is the push endpoint, e.g. https://loki.example.ch/loki/api/v1/push.
+	// Url is the Loki address, e.g. http://loki.example.ch:3100; the push path is added if missing.
 	Url string
 	// Username and Password are sent as basic auth, as Grafana Cloud expects.
 	Username string

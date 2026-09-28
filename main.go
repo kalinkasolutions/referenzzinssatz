@@ -51,7 +51,7 @@ func main() {
 		handlers = append(handlers, slog.NewJSONHandler(lokiWriter, &slog.HandlerOptions{Level: consoleLevel}))
 		go flushOnShutdown(lokiWriter)
 		logger = slog.New(slog.NewMultiHandler(handlers...))
-		logger.Info("Shipping logs to Loki", "url", config.Loki.Url)
+		logger.Info("Shipping logs to Loki", "url", loki.PushUrl(config.Loki.Url))
 	}
 
 	db := datalayer.NewDb(logger, config)

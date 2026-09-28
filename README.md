@@ -73,7 +73,7 @@ Loki as JSON, every two seconds. Lines are dropped rather than queued when Loki 
 
 | `Loki` key | Meaning |
 | --- | --- |
-| `Url` | Push endpoint, e.g. `https://loki.example.ch/loki/api/v1/push`. Empty turns shipping off. |
+| `Url` | Loki address, e.g. `http://loki.example.ch:3100`. `/loki/api/v1/push` is added unless the URL already has a path. Empty turns shipping off. |
 | `Username`, `Password` | Basic auth. For Grafana Cloud: the Loki user id and an access policy token. |
 | `TenantId` | Sent as `X-Scope-OrgID`, for multi-tenant Loki. |
 | `Labels` | Extra stream labels. `service_name` is `referenzzinssatz` unless set here. |
