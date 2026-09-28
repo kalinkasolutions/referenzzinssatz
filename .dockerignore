@@ -1,0 +1,6 @@
+.git/
+.github/
+.vscode/
+conf.json
+data/
+docker-compose.yml

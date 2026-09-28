@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="de">
+{{ template "head.html" . }}
+
+<body>
+  <main class="shell">
+    <a class="brand" href="/">Referenzzinssatz</a>
+
+    <section class="card">
+      <h1>{{ .Title }}</h1>
+      <p class="lead">{{ .Message }}</p>
+      <form method="post" action="{{ .ConfirmAction }}">
+        <button type="submit" class="button--wide">{{ .ConfirmLabel }}</button>
+      </form>
+    </section>
+  </main>
+</body>
+
+</html>

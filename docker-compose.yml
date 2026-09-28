@@ -1,0 +1,11 @@
+services:
+  app:
+    container_name: referenzzinssatz
+    image: kalinkasolutions/referenzzinssatz:latest
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./conf.json:/app/conf.json:ro
+      # Must be writable by uid 10001, the user the container runs as.
+      - ./data:/app/data
+    restart: always

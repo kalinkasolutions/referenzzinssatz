@@ -1,0 +1,266 @@
+:root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --text: #1c2127;
+    --muted: #5c6670;
+    --border: #e1e4e8;
+    --accent: #2a5a8c;
+    --accent-hover: #224a74;
+    --on-accent: #ffffff;
+    --focus-ring: rgba(42, 90, 140, 0.35);
+    --success: #1f7a4d;
+    --error: #b3261e;
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px rgba(16, 24, 40, 0.06);
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #111418;
+        --surface: #1a1e24;
+        --text: #e8eaed;
+        --muted: #9aa4ae;
+        --border: #2c323a;
+        --accent: #80b1e6;
+        --accent-hover: #a0c5ee;
+        --on-accent: #0d1b2a;
+        --focus-ring: rgba(128, 177, 230, 0.4);
+        --success: #62c48f;
+        --error: #f28b82;
+        --shadow: none;
+        color-scheme: dark;
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1rem;
+    line-height: 1.55;
+}
+
+a {
+    color: var(--accent);
+    text-underline-offset: 0.15em;
+}
+
+a:hover {
+    color: var(--accent-hover);
+}
+
+h1 {
+    margin: 0 0 0.75rem;
+    font-size: clamp(1.375rem, 1.1rem + 1vw, 1.75rem);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+}
+
+p {
+    margin: 0;
+}
+
+.shell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 2rem 1rem;
+}
+
+.brand {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--muted);
+}
+
+.card {
+    width: 100%;
+    max-width: 32rem;
+    padding: clamp(1.5rem, 5vw, 2.5rem);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+
+.lead {
+    color: var(--muted);
+}
+
+.rate {
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.rate__label {
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.rate__value {
+    margin: 0.125rem 0;
+    font-size: 3.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.rate__meta {
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.subscribe {
+    margin-top: 1.5rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.subscribe__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+input {
+    /* Takes all spare width beside the button, but lets the button wrap to full width below it. */
+    flex: 999 1 14rem;
+    min-width: 0;
+    height: 3rem;
+    padding: 0 0.875rem;
+    font: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+input::placeholder {
+    color: var(--muted);
+    opacity: 0.7;
+}
+
+button {
+    flex: 1 0 auto;
+    height: 3rem;
+    padding: 0 1.25rem;
+    font: inherit;
+    font-weight: 600;
+    color: var(--on-accent);
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--accent-hover);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+    border-color: var(--accent);
+}
+
+.button--wide {
+    width: 100%;
+    margin-top: 1.5rem;
+}
+
+.status {
+    min-height: 1.55em;
+    margin-top: 0.75rem;
+    font-size: 0.9375rem;
+}
+
+.status[data-kind="pending"] {
+    color: var(--muted);
+}
+
+.status[data-kind="success"] {
+    color: var(--success);
+}
+
+.status[data-kind="error"] {
+    color: var(--error);
+}
+
+.fineprint {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+.check {
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--success) 14%, transparent);
+    fill: none;
+    stroke: var(--success);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.back {
+    display: inline-block;
+    margin-top: 1.5rem;
+    font-weight: 600;
+}
+
+.footer {
+    max-width: 32rem;
+    font-size: 0.8125rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+.footer p + p {
+    margin-top: 0.375rem;
+}
+
+.footer a {
+    color: inherit;
+}
+
+/* Hiding the badge is allowed as long as the notice in the footer stays visible. */
+.grecaptcha-badge {
+    visibility: hidden;
+}

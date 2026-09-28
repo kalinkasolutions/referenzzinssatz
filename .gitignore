@@ -1,0 +1,12 @@
+# Holds SMTP and Google credentials; copy conf.example.json instead.
+conf.json
+
+data/
+*.sqlite3*
+/referenzzinssatz
+*__debug_bin*
+
+*.exe
+*.test
+*.out
+go.work

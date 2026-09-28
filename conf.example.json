@@ -1,0 +1,17 @@
+{
+    "DatabasePath": "./data",
+    "DatabaseName": "db.sqlite3",
+    "Port": "8000",
+    "Domain": "referenzzinssatz.example.ch",
+    "Ssl": true,
+    "SMTP_Username": "service@example.ch",
+    "SMTP_Password": "change-me",
+    "SMTP_Host": "smtp.example.ch",
+    "SMTP_Port": "587",
+    "ReCaptchaSiteKey": "your-recaptcha-site-key",
+    "RecaptchaGoogleCloudApiKey": "your-google-cloud-api-key",
+    "ReCaptchaProjectID": "your-google-cloud-project-id",
+    "RecaptchaMinScore": 0.7,
+    "TrustedProxies": ["127.0.0.1"],
+    "Debug": false
+}

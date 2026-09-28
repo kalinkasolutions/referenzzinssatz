@@ -1,0 +1,12 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Kostenlose E-Mail-Benachrichtigung, sobald sich der hypothekarische Referenzzinssatz der Schweiz ändert.">
+  <title>{{ if ne .Title "Referenzzinssatz" }}{{ .Title }} · {{ end }}Referenzzinssatz</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/main.css">
+  {{- if .ReCaptchaSiteKey }}
+  <script src="https://www.google.com/recaptcha/enterprise.js?render={{ .ReCaptchaSiteKey }}" async defer></script>
+  {{- end }}
+</head>

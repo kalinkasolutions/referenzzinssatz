@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+{{ template "head.html" . }}
+
+<body>
+  <main class="shell">
+    <a class="brand" href="/">Referenzzinssatz</a>
+
+    <section class="card">
+      {{- with .CurrentRate }}
+      <div class="rate">
+        <p class="rate__label">Aktueller hypothekarischer Referenzzinssatz</p>
+        <p class="rate__value">{{ percent .ReferenceInterestRate }}</p>
+        <p class="rate__meta">gültig seit {{ dateLong .ValidFrom }}</p>
+      </div>
+      {{- end }}
+
+      <h1>Erfahren Sie sofort, wenn sich der Referenzzinssatz ändert.</h1>
+      <p class="lead">Das Bundesamt für Wohnungswesen veröffentlicht den Referenzzinssatz für Mietverhältnisse vierteljährlich. Ändert er sich, erhalten Sie eine kurze E-Mail – sonst nichts.</p>
+
+      <form id="subscribe-form" class="subscribe" data-site-key="{{ .ReCaptchaSiteKey }}">
+        <label for="mail">E-Mail-Adresse</label>
+        <div class="subscribe__row">
+          <input id="mail" name="mail" type="email" autocomplete="email" placeholder="name@beispiel.ch" required>
+          <button type="submit">Anmelden</button>
+        </div>
+        <p id="form-status" class="status" role="status" aria-live="polite"></p>
+      </form>
+
+      <p class="fineprint">Kostenlos · Jederzeit mit einem Klick abmelden</p>
+    </section>
+
+    <footer class="footer">
+      <p>Quelle: <a href="{{ .SourceUrl }}">Bundesamt für Wohnungswesen (BWO)</a>. Dies ist kein Angebot des Bundes.</p>
+      <p>Geschützt durch reCAPTCHA. Es gelten die <a href="https://policies.google.com/privacy">Datenschutzerklärung</a> und die <a href="https://policies.google.com/terms">Nutzungsbedingungen</a> von Google.</p>
+    </footer>
+  </main>
+  <script src="/static/subscribe.js" defer></script>
+</body>
+
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="de">
+{{ template "head.html" . }}
+
+<body>
+  <main class="shell">
+    <a class="brand" href="/">Referenzzinssatz</a>
+
+    <section class="card">
+      {{- if .Success }}
+      <svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+      {{- end }}
+      <h1>{{ .Title }}</h1>
+      <p class="lead">{{ .Message }}{{ with .ContactEmail }} <a href="mailto:{{ . }}">{{ . }}</a>{{ end }}</p>
+      <a class="back" href="/">Zur Startseite</a>
+    </section>
+  </main>
+</body>
+
+</html>
