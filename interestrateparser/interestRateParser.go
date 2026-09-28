@@ -15,7 +15,12 @@ import (
 	"github.com/kalinkasolutions/referenzzinssatz/repository/interestraterepo"
 )
 
-const rateTableRows = "table.table tbody tr"
+const (
+	rateTableRows = "table.table tbody tr"
+	// A cold start of Chrome on a slow machine, such as a CI runner, can exceed chromedp's 20s default.
+	browserStartTimeout = 90 * time.Second
+	pageLoadTimeout     = 30 * time.Second
+)
 
 var (
 	percentPattern = regexp.MustCompile(`\d+(,\d+)?`)
@@ -65,13 +70,19 @@ func (ip *InterestRateParser) fetchRenderedHtml() (string, error) {
 	ctx, cancelAllocator := chromedp.NewExecAllocator(context.Background(),
 		chromedp.Headless,
 		chromedp.DisableGPU,
-		chromedp.NoSandbox)
+		chromedp.NoSandbox,
+		chromedp.WSURLReadTimeout(browserStartTimeout))
 	defer cancelAllocator()
 
 	ctx, cancelCtx := chromedp.NewContext(ctx)
 	defer cancelCtx()
 
-	ctx, cancelTimeout := context.WithTimeout(ctx, 30*time.Second)
+	// Start the browser before applying the page timeout, so a slow start does not eat into it.
+	if err := chromedp.Run(ctx); err != nil {
+		return "", fmt.Errorf("could not start browser: %w", err)
+	}
+
+	ctx, cancelTimeout := context.WithTimeout(ctx, pageLoadTimeout)
 	defer cancelTimeout()
 
 	var html string
