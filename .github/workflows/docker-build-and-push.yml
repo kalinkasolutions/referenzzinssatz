@@ -1,4 +1,4 @@
-name: Build and Push Multi-Platform Docker Image
+name: Build and Push Docker Image
 
 on:
   release:
@@ -16,9 +16,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -28,11 +25,11 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_API_TOKEN }}
 
-      - name: Build and push multi-platform Docker image
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ secrets.DOCKER_HUB_USERNAME }}/referenzzinssatz:${{ github.ref_name }}

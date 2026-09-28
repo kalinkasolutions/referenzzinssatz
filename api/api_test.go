@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -31,7 +32,7 @@ func newTestApi(t *testing.T, subscribers ...subscriberrepo.Subscriber) testApi 
 		mail:        &mocks.SendMailMock{},
 		captcha:     &mocks.RecaptchaMock{Human: true},
 	}
-	api := NewApi(config.Config{SMTP_Username: "service@example.ch"}, mocks.NewLoggerMock(), test.subscribers, test.rates, test.mail, test.captcha)
+	api := NewApi(config.Config{SMTP_Username: "service@example.ch"}, slog.New(slog.DiscardHandler), test.subscribers, test.rates, test.mail, test.captcha)
 	router, err := api.Router()
 	if err != nil {
 		t.Fatalf("failed to build router: %v", err)
@@ -181,4 +182,18 @@ func TestUnknownPathIsNotFound(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, test.request(http.MethodGet, "/does-not-exist", "").Code)
 	assert.Equal(t, http.StatusOK, test.request(http.MethodGet, "/static/main.css", "").Code)
+}
+
+func TestRequestLogOmitsQueryCodes(t *testing.T) {
+	var output strings.Builder
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(requestLogger(slog.New(slog.NewTextHandler(&output, nil))))
+	router.GET("/unsubscribe", func(ctx *gin.Context) { ctx.Status(http.StatusOK) })
+
+	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/unsubscribe?unsubscribecode=secret-code", nil))
+
+	assert.Equal(t, true, strings.Contains(output.String(), "path=/unsubscribe"))
+	assert.Equal(t, true, strings.Contains(output.String(), "status=200"))
+	assert.Equal(t, false, strings.Contains(output.String(), "secret-code"))
 }

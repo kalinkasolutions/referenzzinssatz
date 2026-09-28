@@ -12,7 +12,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/chromedp"
 	"github.com/kalinkasolutions/referenzzinssatz/config"
-	"github.com/kalinkasolutions/referenzzinssatz/logger"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/interestraterepo"
 )
 
@@ -28,14 +27,12 @@ type IInterestRateParser interface {
 }
 
 type InterestRateParser struct {
-	logger           logger.ILogger
 	config           config.Config
 	interestRateRepo interestraterepo.IInterestRepository
 }
 
-func NewInterestRateParser(logger logger.ILogger, config config.Config, interestRateRepo interestraterepo.IInterestRepository) *InterestRateParser {
+func NewInterestRateParser(config config.Config, interestRateRepo interestraterepo.IInterestRepository) *InterestRateParser {
 	return &InterestRateParser{
-		logger:           logger,
 		config:           config,
 		interestRateRepo: interestRateRepo,
 	}

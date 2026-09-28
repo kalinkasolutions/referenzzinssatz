@@ -1,6 +1,6 @@
 # Builder and runtime share a Debian release: the CGO build for SQLite links
 # against glibc and fails to start on an older one.
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.26-bookworm AS builder
 WORKDIR /app
 
 COPY go.mod go.sum ./

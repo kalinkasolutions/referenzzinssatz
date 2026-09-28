@@ -47,7 +47,7 @@ services:
 | `RecaptchaMinScore` | Minimum score (0–1) required to subscribe; `0.7` is a reasonable start. |
 | `TrustedProxies` | Addresses of reverse proxies whose `X-Forwarded-For` header is trusted. |
 | `ReferenzZinssatzUrl` | Optional. Defaults to the BWO page above. |
-| `Debug` | Enables gin's debug mode. |
+| `Debug` | Enables debug-level logging and gin's debug mode. |
 
 ## Development
 
@@ -60,3 +60,6 @@ go run . -configPath ./conf.json
 ```
 
 Templates and static files live in `web/` and are embedded into the binary.
+
+Logs are written with `log/slog` to stdout. Warnings and errors are also kept in the `Logs` table
+for 90 days, with their fields as JSON in the `Attributes` column.

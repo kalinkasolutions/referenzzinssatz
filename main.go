@@ -2,15 +2,15 @@ package main
 
 import (
 	"flag"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/kalinkasolutions/referenzzinssatz/api"
 	"github.com/kalinkasolutions/referenzzinssatz/config"
 	"github.com/kalinkasolutions/referenzzinssatz/datalayer"
+	"github.com/kalinkasolutions/referenzzinssatz/dblog"
 	"github.com/kalinkasolutions/referenzzinssatz/interestrateparser"
-	"github.com/kalinkasolutions/referenzzinssatz/logger"
-	"github.com/kalinkasolutions/referenzzinssatz/loggersink/consolelogsink"
-	"github.com/kalinkasolutions/referenzzinssatz/loggersink/dblogsink"
 	"github.com/kalinkasolutions/referenzzinssatz/recaptcha"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/interestraterepo"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/logrepo"
@@ -21,10 +21,14 @@ import (
 const (
 	checkInterval = 24 * time.Hour
 	logRetention  = 90 * 24 * time.Hour
+	// Info-level lines such as every HTTP request stay in the console only.
+	storedLogLevel = slog.LevelWarn
 )
 
 func main() {
-	logger := logger.NewLogger(consolelogsink.NewConsoleSink())
+	consoleLevel := new(slog.LevelVar)
+	console := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: consoleLevel})
+	logger := slog.New(console)
 	logger.Info("starting referenzzinssatz")
 
 	var configPath string
@@ -32,14 +36,18 @@ func main() {
 	flag.Parse()
 
 	config := config.LoadConfig(configPath, logger)
+	if config.Debug {
+		consoleLevel.Set(slog.LevelDebug)
+	}
 	db := datalayer.NewDb(logger, config)
 
 	logRepo := logrepo.NewLogRepository(db)
-	logger.AddSink(dblogsink.NewDbSink(logRepo))
+	logger = slog.New(slog.NewMultiHandler(console, dblog.NewHandler(logRepo, storedLogLevel)))
+	slog.SetDefault(logger)
 
 	subscriberRepo := subscriberrepo.NewSubscriberRepository(logger, db)
 	interestRateRepo := interestraterepo.NewInterestRepository(logger, db)
-	interestRateParser := interestrateparser.NewInterestRateParser(logger, config, interestRateRepo)
+	interestRateParser := interestrateparser.NewInterestRateParser(config, interestRateRepo)
 	sendMail := sendmail.NewSendMail(logger, config)
 	captcha := recaptcha.NewReCaptcha(logger, config)
 
@@ -62,7 +70,7 @@ func runEvery(interval time.Duration, job func()) {
 // Subscribers hear about a change only when the newest rate differs from the one before the
 // scrape. On the very first scrape there is nothing to compare with, so nobody is mailed.
 func notifyOnNewInterestRate(
-	logger logger.ILogger,
+	logger *slog.Logger,
 	parser interestrateparser.IInterestRateParser,
 	interestRateRepo interestraterepo.IInterestRepository,
 	subscriberRepo subscriberrepo.ISubscriberRepository,
@@ -72,10 +80,10 @@ func notifyOnNewInterestRate(
 
 	inserted, err := parser.ExtractInterestRate()
 	if err != nil {
-		logger.Error("Failed to extract reference interest rates: %v", err)
+		logger.Error("Failed to extract reference interest rates", "error", err)
 		return
 	}
-	logger.Info("Checked reference interest rate, %d new entries", len(inserted))
+	logger.Info("Checked reference interest rate", "newEntries", len(inserted))
 
 	current, _ := interestRateRepo.GetNewest()
 	if !hadPrevious || current.Id == previous.Id {

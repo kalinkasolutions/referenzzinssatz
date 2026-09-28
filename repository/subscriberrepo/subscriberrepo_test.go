@@ -1,23 +1,23 @@
 package subscriberrepo_test
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/go-playground/assert/v2"
 	"github.com/kalinkasolutions/referenzzinssatz/config"
 	"github.com/kalinkasolutions/referenzzinssatz/datalayer"
-	"github.com/kalinkasolutions/referenzzinssatz/mocks"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/subscriberrepo"
 )
 
 func TestCrudSubscriber(t *testing.T) {
 	var mail = "hello@hello.ch"
-	db := datalayer.NewDb(mocks.NewLoggerMock(), config.Config{
+	db := datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabasePath: "",
 		DatabaseName: "file::memory:?cache=shared",
 	})
 	defer db.Close()
-	repo := subscriberrepo.NewSubscriberRepository(mocks.NewLoggerMock(), db)
+	repo := subscriberrepo.NewSubscriberRepository(slog.New(slog.DiscardHandler), db)
 
 	subscriber, err := repo.InsertSubscriber(mail)
 
@@ -44,12 +44,12 @@ func TestCrudSubscriber(t *testing.T) {
 
 func TestDuplicateInsertion(t *testing.T) {
 	var mail = "hello@hello.ch"
-	db := datalayer.NewDb(mocks.NewLoggerMock(), config.Config{
+	db := datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabasePath: "",
 		DatabaseName: "file::memory:?cache=shared",
 	})
 	defer db.Close()
-	repo := subscriberrepo.NewSubscriberRepository(mocks.NewLoggerMock(), db)
+	repo := subscriberrepo.NewSubscriberRepository(slog.New(slog.DiscardHandler), db)
 
 	subscriber, _ := repo.InsertSubscriber(mail)
 	subscriber, err := repo.InsertSubscriber(mail)
@@ -60,12 +60,12 @@ func TestDuplicateInsertion(t *testing.T) {
 
 func TestValidateEmail(t *testing.T) {
 	var mail = "hello@hello.ch"
-	db := datalayer.NewDb(mocks.NewLoggerMock(), config.Config{
+	db := datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabasePath: "",
 		DatabaseName: "file::memory:?cache=shared",
 	})
 	defer db.Close()
-	repo := subscriberrepo.NewSubscriberRepository(mocks.NewLoggerMock(), db)
+	repo := subscriberrepo.NewSubscriberRepository(slog.New(slog.DiscardHandler), db)
 
 	subscriber, _ := repo.InsertSubscriber(mail)
 
@@ -82,13 +82,13 @@ func TestValidateEmail(t *testing.T) {
 
 func TestUnsubscribe(t *testing.T) {
 	var mail = "hello@hello.ch"
-	db := datalayer.NewDb(mocks.NewLoggerMock(), config.Config{
+	db := datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabasePath: "",
 		DatabaseName: "file::memory:?cache=shared",
 	})
 
 	defer db.Close()
-	repo := subscriberrepo.NewSubscriberRepository(mocks.NewLoggerMock(), db)
+	repo := subscriberrepo.NewSubscriberRepository(slog.New(slog.DiscardHandler), db)
 
 	subscriber, _ := repo.InsertSubscriber(mail)
 
@@ -104,12 +104,12 @@ func TestUnsubscribe(t *testing.T) {
 }
 
 func TestGetSubscriberByEmail(t *testing.T) {
-	db := datalayer.NewDb(mocks.NewLoggerMock(), config.Config{
+	db := datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabasePath: "",
 		DatabaseName: "file::memory:?cache=shared",
 	})
 	defer db.Close()
-	repo := subscriberrepo.NewSubscriberRepository(mocks.NewLoggerMock(), db)
+	repo := subscriberrepo.NewSubscriberRepository(slog.New(slog.DiscardHandler), db)
 
 	_, found := repo.GetSubscriberByEmail("hello@hello.ch")
 	assert.Equal(t, false, found)
@@ -122,12 +122,12 @@ func TestGetSubscriberByEmail(t *testing.T) {
 }
 
 func TestInvalidCodesAreRejected(t *testing.T) {
-	db := datalayer.NewDb(mocks.NewLoggerMock(), config.Config{
+	db := datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabasePath: "",
 		DatabaseName: "file::memory:?cache=shared",
 	})
 	defer db.Close()
-	repo := subscriberrepo.NewSubscriberRepository(mocks.NewLoggerMock(), db)
+	repo := subscriberrepo.NewSubscriberRepository(slog.New(slog.DiscardHandler), db)
 
 	repo.InsertSubscriber("hello@hello.ch")
 

@@ -72,7 +72,7 @@ func TestExtractInterestRateReportsUnreachablePage(t *testing.T) {
 	requireBrowser(t)
 	server := httptest.NewServer(http.NotFoundHandler())
 	server.Close()
-	parser := NewInterestRateParser(mocks.NewLoggerMock(), config.Config{ReferenzZinssatzUrl: server.URL}, mocks.NewInterestRateRepositoryMock())
+	parser := NewInterestRateParser(config.Config{ReferenzZinssatzUrl: server.URL}, mocks.NewInterestRateRepositoryMock())
 
 	_, err := parser.ExtractInterestRate()
 
@@ -85,7 +85,7 @@ func newParserFor(t *testing.T, testfile string, repo *mocks.InterestRateReposit
 		w.Write([]byte(html))
 	}))
 	t.Cleanup(server.Close)
-	return NewInterestRateParser(mocks.NewLoggerMock(), config.Config{ReferenzZinssatzUrl: server.URL}, repo)
+	return NewInterestRateParser(config.Config{ReferenzZinssatzUrl: server.URL}, repo)
 }
 
 func readFile(t *testing.T, path string) string {

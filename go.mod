@@ -1,6 +1,6 @@
 module github.com/kalinkasolutions/referenzzinssatz
 
-go 1.24
+go 1.26
 
 require (
 	cloud.google.com/go/recaptchaenterprise/v2 v2.14.2

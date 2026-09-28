@@ -1,18 +1,18 @@
 package logrepo_test
 
 import (
+	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/go-playground/assert/v2"
 	"github.com/kalinkasolutions/referenzzinssatz/config"
 	"github.com/kalinkasolutions/referenzzinssatz/datalayer"
-	"github.com/kalinkasolutions/referenzzinssatz/mocks"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/logrepo"
 )
 
 func TestInsertAndGetAll(t *testing.T) {
-	db := datalayer.NewDb(mocks.NewLoggerMock(), config.Config{
+	db := datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabaseName: "file::memory:?cache=shared",
 	})
 	defer db.Close()
@@ -28,7 +28,7 @@ func TestInsertAndGetAll(t *testing.T) {
 }
 
 func TestDeleteOlderThan(t *testing.T) {
-	db := datalayer.NewDb(mocks.NewLoggerMock(), config.Config{
+	db := datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabaseName: "file::memory:?cache=shared",
 	})
 	defer db.Close()
@@ -43,4 +43,24 @@ func TestDeleteOlderThan(t *testing.T) {
 
 	assert.Equal(t, 1, len(logs))
 	assert.Equal(t, "recent", logs[0].Message)
+}
+
+func TestMigrationMapsOldLevelsToSlog(t *testing.T) {
+	db := datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{
+		DatabaseName: "file::memory:?cache=shared",
+	})
+	defer db.Close()
+	// Recreate a version 3 database holding one entry per old level (debug, info, warning, error).
+	_, err := db.Exec(`ALTER TABLE Logs DROP COLUMN Attributes; PRAGMA user_version = 3;
+		INSERT INTO Logs VALUES ('0', '2025-01-01T00:00:00Z', 0, 'debug'), ('1', '2025-01-01T00:00:00Z', 1, 'info'),
+		                        ('2', '2025-01-01T00:00:00Z', 2, 'warning'), ('3', '2025-01-01T00:00:00Z', 3, 'error')`)
+	assert.Equal(t, nil, err)
+
+	datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{DatabaseName: "file::memory:?cache=shared"}).Close()
+	levels := map[string]int{}
+	for _, entry := range logrepo.NewLogRepository(db).GetAll() {
+		levels[entry.Message] = entry.Level
+	}
+
+	assert.Equal(t, map[string]int{"debug": int(slog.LevelDebug), "info": int(slog.LevelInfo), "warning": int(slog.LevelWarn), "error": int(slog.LevelError)}, levels)
 }

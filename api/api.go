@@ -7,15 +7,16 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kalinkasolutions/referenzzinssatz/config"
-	"github.com/kalinkasolutions/referenzzinssatz/logger"
 	"github.com/kalinkasolutions/referenzzinssatz/recaptcha"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/interestraterepo"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/subscriberrepo"
 	"github.com/kalinkasolutions/referenzzinssatz/sendmail"
 	"github.com/kalinkasolutions/referenzzinssatz/web"
+	"log/slog"
 )
 
 const maxEmailLength = 254
@@ -26,7 +27,7 @@ type Api struct {
 	subscriberRepo   subscriberrepo.ISubscriberRepository
 	interestRateRepo interestraterepo.IInterestRepository
 	config           config.Config
-	logger           logger.ILogger
+	logger           *slog.Logger
 	sendMail         sendmail.ISendMail
 	captcha          recaptcha.IRecaptcha
 }
@@ -49,7 +50,7 @@ type subscribeRequest struct {
 	ReCaptchaToken string
 }
 
-func NewApi(config config.Config, logger logger.ILogger, subscriberRepo subscriberrepo.ISubscriberRepository, interestRateRepo interestraterepo.IInterestRepository, sendMail sendmail.ISendMail, captcha recaptcha.IRecaptcha) *Api {
+func NewApi(config config.Config, logger *slog.Logger, subscriberRepo subscriberrepo.ISubscriberRepository, interestRateRepo interestraterepo.IInterestRepository, sendMail sendmail.ISendMail, captcha recaptcha.IRecaptcha) *Api {
 	return &Api{
 		subscriberRepo:   subscriberRepo,
 		interestRateRepo: interestRateRepo,
@@ -67,13 +68,13 @@ func (a *Api) Load() {
 
 	router, err := a.Router()
 	if err != nil {
-		a.logger.Error("Failed to set up router: %v", err)
+		a.logger.Error("Failed to set up router", "error", err)
 		os.Exit(1)
 	}
 
-	a.logger.Info("Starting API on port: %s", a.config.Port)
+	a.logger.Info("Starting API", "port", a.config.Port)
 	if err := router.Run(":" + a.config.Port); err != nil {
-		a.logger.Error("API stopped: %v", err)
+		a.logger.Error("API stopped", "error", err)
 		os.Exit(1)
 	}
 }
@@ -85,7 +86,7 @@ func (a *Api) Router() (*gin.Engine, error) {
 	}
 
 	router := gin.New()
-	router.Use(gin.Logger())
+	router.Use(requestLogger(a.logger))
 	router.Use(gin.Recovery())
 	if err := router.SetTrustedProxies(a.config.TrustedProxies); err != nil {
 		return nil, err
@@ -116,6 +117,21 @@ func (a *Api) Router() (*gin.Engine, error) {
 	return router, nil
 }
 
+// requestLogger leaves out the query string, which carries the validation and unsubscribe codes.
+func requestLogger(logger *slog.Logger) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		start := time.Now()
+		ctx.Next()
+		logger.Info("HTTP request",
+			"method", ctx.Request.Method,
+			"path", ctx.Request.URL.Path,
+			"status", ctx.Writer.Status(),
+			"duration", time.Since(start),
+			"clientIp", ctx.ClientIP(),
+		)
+	}
+}
+
 func (a *Api) home() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		content := page{
@@ -135,7 +151,7 @@ func (a *Api) subscribe() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var request subscribeRequest
 		if err := ctx.ShouldBindJSON(&request); err != nil {
-			a.logger.Warning("Failed to parse subscribe request: %v", err)
+			a.logger.Warn("Failed to parse subscribe request", "error", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "bad_request"})
 			return
 		}
@@ -155,7 +171,7 @@ func (a *Api) subscribe() gin.HandlerFunc {
 		if !found {
 			subscriber, err = a.subscriberRepo.InsertSubscriber(email)
 			if err != nil {
-				a.logger.Error("Failed to insert subscriber: %v", err)
+				a.logger.Error("Failed to insert subscriber", "error", err)
 				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "server_error"})
 				return
 			}

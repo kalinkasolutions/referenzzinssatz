@@ -1,15 +1,15 @@
 package datalayer
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/go-playground/assert/v2"
 	"github.com/kalinkasolutions/referenzzinssatz/config"
-	"github.com/kalinkasolutions/referenzzinssatz/mocks"
 )
 
 func TestEnsureSubscribersTableExist(t *testing.T) {
-	db := NewDb(mocks.NewLoggerMock(), config.Config{
+	db := NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabasePath: "",
 		DatabaseName: "file::memory:?cache=shared",
 	})
@@ -22,7 +22,7 @@ func TestEnsureSubscribersTableExist(t *testing.T) {
 }
 
 func TestEnsureInterestRatesTableExist(t *testing.T) {
-	db := NewDb(mocks.NewLoggerMock(), config.Config{
+	db := NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabasePath: "",
 		DatabaseName: "file::memory:?cache=shared",
 	})
@@ -35,7 +35,7 @@ func TestEnsureInterestRatesTableExist(t *testing.T) {
 }
 
 func TestEnsureInterestLogExist(t *testing.T) {
-	db := NewDb(mocks.NewLoggerMock(), config.Config{
+	db := NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabasePath: "",
 		DatabaseName: "file::memory:?cache=shared",
 	})

@@ -1,11 +1,11 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"testing"
 
 	"github.com/go-playground/assert/v2"
-	"github.com/kalinkasolutions/referenzzinssatz/mocks"
 )
 
 func TestConfig(t *testing.T) {
@@ -29,7 +29,7 @@ func TestConfig(t *testing.T) {
 
 	assert.Equal(t, nil, err)
 
-	config := LoadConfig(path, mocks.NewLoggerMock())
+	config := LoadConfig(path, slog.New(slog.DiscardHandler))
 
 	assert.Equal(t, "ReferenzZinssatzUrl", config.ReferenzZinssatzUrl)
 	assert.Equal(t, "DatabasePath", config.DatabasePath)
@@ -52,7 +52,7 @@ func TestConfigDefaultsSourceUrl(t *testing.T) {
 	err := os.WriteFile(path, []byte(`{"Domain": "example.ch", "Ssl": true}`), 0644)
 	assert.Equal(t, nil, err)
 
-	config := LoadConfig(path, mocks.NewLoggerMock())
+	config := LoadConfig(path, slog.New(slog.DiscardHandler))
 
 	assert.Equal(t, DefaultReferenzZinssatzUrl, config.ReferenzZinssatzUrl)
 	assert.Equal(t, "https://example.ch", config.BaseUrl())

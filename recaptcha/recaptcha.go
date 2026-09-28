@@ -9,8 +9,8 @@ import (
 	recaptcha "cloud.google.com/go/recaptchaenterprise/v2/apiv1"
 	recaptchapb "cloud.google.com/go/recaptchaenterprise/v2/apiv1/recaptchaenterprisepb"
 	"github.com/kalinkasolutions/referenzzinssatz/config"
-	"github.com/kalinkasolutions/referenzzinssatz/logger"
 	"google.golang.org/api/option"
+	"log/slog"
 )
 
 type IRecaptcha interface {
@@ -18,15 +18,15 @@ type IRecaptcha interface {
 }
 
 type Recaptcha struct {
-	logger logger.ILogger
+	logger *slog.Logger
 	config config.Config
 	client *recaptcha.Client
 }
 
-func NewReCaptcha(logger logger.ILogger, config config.Config) *Recaptcha {
+func NewReCaptcha(logger *slog.Logger, config config.Config) *Recaptcha {
 	client, err := recaptcha.NewClient(context.Background(), option.WithAPIKey(config.RecaptchaGoogleCloudApiKey))
 	if err != nil {
-		logger.Error("Failed to create reCAPTCHA client: %v", err)
+		logger.Error("Failed to create reCAPTCHA client", "error", err)
 		os.Exit(1)
 	}
 
@@ -53,23 +53,23 @@ func (r *Recaptcha) CreateAssessment(token string, recaptchaAction string) bool 
 		},
 	})
 	if err != nil {
-		r.logger.Error("Failed to create reCAPTCHA assessment: %v", err)
+		r.logger.Error("Failed to create reCAPTCHA assessment", "error", err)
 		return false
 	}
 
 	tokenProperties := response.GetTokenProperties()
 	if !tokenProperties.GetValid() {
-		r.logger.Warning("reCAPTCHA token invalid: %v", tokenProperties.GetInvalidReason())
+		r.logger.Warn("reCAPTCHA token invalid", "reason", tokenProperties.GetInvalidReason().String())
 		return false
 	}
 	if tokenProperties.GetAction() != recaptchaAction {
-		r.logger.Warning("reCAPTCHA action %q does not match expected %q", tokenProperties.GetAction(), recaptchaAction)
+		r.logger.Warn("reCAPTCHA action does not match", "action", tokenProperties.GetAction(), "expected", recaptchaAction)
 		return false
 	}
 
 	score := response.GetRiskAnalysis().GetScore()
 	if score < r.config.RecaptchaMinScore {
-		r.logger.Warning("reCAPTCHA score %.1f below minimum %.1f", score, r.config.RecaptchaMinScore)
+		r.logger.Warn("reCAPTCHA score below minimum", "score", score, "minimum", r.config.RecaptchaMinScore)
 		return false
 	}
 	return true

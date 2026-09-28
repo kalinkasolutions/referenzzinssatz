@@ -2,22 +2,22 @@ package interestraterepo_test
 
 import (
 	"database/sql"
+	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/go-playground/assert/v2"
 	"github.com/kalinkasolutions/referenzzinssatz/config"
 	"github.com/kalinkasolutions/referenzzinssatz/datalayer"
-	"github.com/kalinkasolutions/referenzzinssatz/mocks"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/interestraterepo"
 )
 
 func newTestRepository(t *testing.T) (*interestraterepo.InterestRateRepository, *sql.DB) {
-	db := datalayer.NewDb(mocks.NewLoggerMock(), config.Config{
+	db := datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{
 		DatabaseName: "file::memory:?cache=shared",
 	})
 	t.Cleanup(func() { db.Close() })
-	return interestraterepo.NewInterestRepository(mocks.NewLoggerMock(), db), db
+	return interestraterepo.NewInterestRepository(slog.New(slog.DiscardHandler), db), db
 }
 
 func date(value string) time.Time {
@@ -73,10 +73,10 @@ func TestMigrationNormalizesScrapedDates(t *testing.T) {
 	_, err := db.Exec(`INSERT INTO InterestRates VALUES ('legacy', '2024-01-01T00:00:00Z', 1.75, ' 02.12.2023 ', 1.69, '30.09.2023')`)
 	assert.Equal(t, nil, err)
 
-	// Re-run the date migration the way an old database would receive it.
-	_, err = db.Exec(`PRAGMA user_version = 1`)
+	// Roll back to schema version 1, including later changes, so the date migration runs again.
+	_, err = db.Exec(`ALTER TABLE Logs DROP COLUMN Attributes; PRAGMA user_version = 1`)
 	assert.Equal(t, nil, err)
-	datalayer.NewDb(mocks.NewLoggerMock(), config.Config{DatabaseName: "file::memory:?cache=shared"}).Close()
+	datalayer.NewDb(slog.New(slog.DiscardHandler), config.Config{DatabaseName: "file::memory:?cache=shared"}).Close()
 
 	var validFrom, surveyDate string
 	err = db.QueryRow(`SELECT ValidFrom, ReferenceDateOfSurvey FROM InterestRates WHERE Id = 'legacy'`).Scan(&validFrom, &surveyDate)

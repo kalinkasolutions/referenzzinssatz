@@ -2,6 +2,7 @@ package sendmail
 
 import (
 	"io"
+	"log/slog"
 	"mime"
 	"mime/quotedprintable"
 	"net/mail"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/go-playground/assert/v2"
 	"github.com/kalinkasolutions/referenzzinssatz/config"
-	"github.com/kalinkasolutions/referenzzinssatz/mocks"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/interestraterepo"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/subscriberrepo"
 )
@@ -69,7 +69,7 @@ func TestMailLinks(t *testing.T) {
 }
 
 func TestRenderUpdateMail(t *testing.T) {
-	sendMail := NewSendMail(mocks.NewLoggerMock(), testConfig)
+	sendMail := NewSendMail(slog.New(slog.DiscardHandler), testConfig)
 	newest := interestraterepo.InterestRate{
 		ReferenceInterestRate:     1.25,
 		ValidFrom:                 time.Date(2025, 9, 2, 0, 0, 0, 0, time.UTC),

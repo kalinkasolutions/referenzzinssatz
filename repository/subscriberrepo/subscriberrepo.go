@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kalinkasolutions/referenzzinssatz/logger"
+	"log/slog"
 )
 
 type Subscriber struct {
@@ -29,13 +29,13 @@ type ISubscriberRepository interface {
 }
 
 type SubscriberRepository struct {
-	logger logger.ILogger
+	logger *slog.Logger
 	db     *sql.DB
 }
 
 const selectColumns = `SELECT Id, CreatedAt, Email, EmailValidated, ValidationCode, UnsubscribeCode FROM Subscribers`
 
-func NewSubscriberRepository(logger logger.ILogger, db *sql.DB) *SubscriberRepository {
+func NewSubscriberRepository(logger *slog.Logger, db *sql.DB) *SubscriberRepository {
 	return &SubscriberRepository{
 		logger: logger,
 		db:     db,
@@ -65,7 +65,7 @@ func (r *SubscriberRepository) GetSubscriberByEmail(email string) (Subscriber, b
 	subscriber, err := scanSubscriber(r.db.QueryRow(selectColumns+" WHERE Email = ?", email))
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			r.logger.Error("Failed to look up subscriber by email: %v", err)
+			r.logger.Error("Failed to look up subscriber by email", "error", err)
 		}
 		return Subscriber{}, false
 	}
@@ -84,12 +84,12 @@ func (r *SubscriberRepository) Unsubscribe(unsubscribeCode string) bool {
 
 func (r *SubscriberRepository) affectedExactlyOneRow(result sql.Result, err error, action string) bool {
 	if err != nil {
-		r.logger.Error("Failed to %s: %v", action, err)
+		r.logger.Error("Failed to update subscriber", "action", action, "error", err)
 		return false
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		r.logger.Error("Failed to get affected rows to %s: %v", action, err)
+		r.logger.Error("Failed to get affected rows", "action", action, "error", err)
 		return false
 	}
 	return rowsAffected == 1
@@ -98,7 +98,7 @@ func (r *SubscriberRepository) affectedExactlyOneRow(result sql.Result, err erro
 func (r *SubscriberRepository) GetSubscriber(id string) Subscriber {
 	subscriber, err := scanSubscriber(r.db.QueryRow(selectColumns+" WHERE Id = ?", id))
 	if err != nil {
-		r.logger.Error("Failed to read subscriber row: %v", err)
+		r.logger.Error("Failed to read subscriber row", "error", err)
 	}
 	return subscriber
 }
@@ -108,7 +108,7 @@ func (r *SubscriberRepository) GetValidatedSubscribers() []Subscriber {
 
 	rows, err := r.db.Query(selectColumns+" WHERE EmailValidated = ?", true)
 	if err != nil {
-		r.logger.Error("Failed to get subscribers: %v", err)
+		r.logger.Error("Failed to get subscribers", "error", err)
 		return subscribers
 	}
 	defer rows.Close()
@@ -116,7 +116,7 @@ func (r *SubscriberRepository) GetValidatedSubscribers() []Subscriber {
 	for rows.Next() {
 		subscriber, err := scanSubscriber(rows)
 		if err != nil {
-			r.logger.Error("Failed to read subscriber row: %v", err)
+			r.logger.Error("Failed to read subscriber row", "error", err)
 			continue
 		}
 		subscribers = append(subscribers, subscriber)
@@ -127,7 +127,7 @@ func (r *SubscriberRepository) GetValidatedSubscribers() []Subscriber {
 func (r *SubscriberRepository) DeleteSubscriber(id string) {
 	_, err := r.db.Exec(`DELETE FROM Subscribers WHERE Id = ?`, id)
 	if err != nil {
-		r.logger.Error("Failed to delete subscriber: %v, id: %s", err, id)
+		r.logger.Error("Failed to delete subscriber", "id", id, "error", err)
 	}
 }
 

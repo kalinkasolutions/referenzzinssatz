@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kalinkasolutions/referenzzinssatz/logger"
+	"log/slog"
 )
 
 const isoDate = "2006-01-02"
@@ -29,13 +29,13 @@ type IInterestRepository interface {
 }
 
 type InterestRateRepository struct {
-	logger logger.ILogger
+	logger *slog.Logger
 	db     *sql.DB
 }
 
 const selectColumns = `SELECT Id, CreatedAt, ReferenceInterestRate, ValidFrom, UnderlyingAvgInterestRate, ReferenceDateOfSurvey FROM InterestRates`
 
-func NewInterestRepository(logger logger.ILogger, db *sql.DB) *InterestRateRepository {
+func NewInterestRepository(logger *slog.Logger, db *sql.DB) *InterestRateRepository {
 	return &InterestRateRepository{
 		logger: logger,
 		db:     db,
@@ -50,7 +50,7 @@ func (r *InterestRateRepository) Insert(rir InterestRate) string {
 		VALUES (?, ?, ?, ?, ?, ?)`,
 		id, time.Now().Format(time.RFC3339), rir.ReferenceInterestRate, rir.ValidFrom.Format(isoDate), rir.UnderlyingAvgInterestRate, rir.ReferenceDateOfSurvey.Format(isoDate))
 	if err != nil {
-		r.logger.Error("Failed to insert reference interest rate: %v", err)
+		r.logger.Error("Failed to insert reference interest rate", "error", err)
 	}
 	return id
 }
@@ -67,7 +67,7 @@ func (r *InterestRateRepository) ReferenceInterestRateExists(rir InterestRate) b
 	var exists bool
 	err := row.Scan(&exists)
 	if err != nil {
-		r.logger.Error("Failed to check if reference interest rate exists: %v", err)
+		r.logger.Error("Failed to check if reference interest rate exists", "error", err)
 	}
 	return exists
 }
@@ -77,7 +77,7 @@ func (r *InterestRateRepository) GetAll() []InterestRate {
 
 	rows, err := r.db.Query(selectColumns)
 	if err != nil {
-		r.logger.Error("Failed to get reference interest rates: %v", err)
+		r.logger.Error("Failed to get reference interest rates", "error", err)
 		return rirs
 	}
 	defer rows.Close()
@@ -85,7 +85,7 @@ func (r *InterestRateRepository) GetAll() []InterestRate {
 	for rows.Next() {
 		rir, err := scanInterestRate(rows)
 		if err != nil {
-			r.logger.Error("Failed to read reference interest rate row: %v", err)
+			r.logger.Error("Failed to read reference interest rate row", "error", err)
 			continue
 		}
 		rirs = append(rirs, rir)
@@ -96,7 +96,7 @@ func (r *InterestRateRepository) GetAll() []InterestRate {
 func (r *InterestRateRepository) Delete(id string) {
 	_, err := r.db.Exec(`DELETE FROM InterestRates WHERE Id = ?`, id)
 	if err != nil {
-		r.logger.Error("Failed to delete reference interest rate: %v, id: %s", err, id)
+		r.logger.Error("Failed to delete reference interest rate", "id", id, "error", err)
 	}
 }
 
@@ -108,7 +108,7 @@ func (r *InterestRateRepository) GetNewest() (InterestRate, bool) {
 		return InterestRate{}, false
 	}
 	if err != nil {
-		r.logger.Error("Failed to get newest reference interest rate: %v", err)
+		r.logger.Error("Failed to get newest reference interest rate", "error", err)
 		return InterestRate{}, false
 	}
 	return rir, true

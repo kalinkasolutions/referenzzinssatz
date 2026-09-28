@@ -14,10 +14,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kalinkasolutions/referenzzinssatz/config"
-	"github.com/kalinkasolutions/referenzzinssatz/logger"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/interestraterepo"
 	"github.com/kalinkasolutions/referenzzinssatz/repository/subscriberrepo"
 	"github.com/kalinkasolutions/referenzzinssatz/web"
+	"log/slog"
 )
 
 const senderName = "Referenzzinssatz"
@@ -28,7 +28,7 @@ type ISendMail interface {
 }
 
 type SendMail struct {
-	logger    logger.ILogger
+	logger    *slog.Logger
 	config    config.Config
 	templates *template.Template
 }
@@ -55,10 +55,10 @@ type message struct {
 	HtmlBody        string
 }
 
-func NewSendMail(logger logger.ILogger, config config.Config) *SendMail {
+func NewSendMail(logger *slog.Logger, config config.Config) *SendMail {
 	templates, err := web.MailTemplates()
 	if err != nil {
-		logger.Error("Failed to parse mail templates: %v", err)
+		logger.Error("Failed to parse mail templates", "error", err)
 		os.Exit(1)
 	}
 	return &SendMail{
@@ -73,7 +73,7 @@ func (s *SendMail) SendValidationMail(subscriber subscriberrepo.Subscriber) bool
 		ValidationUrl: ValidationUrl(s.config, subscriber),
 	})
 	if err != nil {
-		s.logger.Error("Failed to render validation mail: %v", err)
+		s.logger.Error("Failed to render validation mail", "error", err)
 		return false
 	}
 	return s.send(s.newMessage(subscriber.Email, "Bitte bestätigen Sie Ihre Anmeldung", body, ""))
@@ -92,14 +92,14 @@ func (s *SendMail) SendReferenzZinssatzUpdate(newest interestraterepo.InterestRa
 			UnsubscribeUrl: unsubscribeUrl,
 		})
 		if err != nil {
-			s.logger.Error("Failed to render update mail: %v", err)
+			s.logger.Error("Failed to render update mail", "error", err)
 			return
 		}
 		if s.send(s.newMessage(subscriber.Email, subject, body, unsubscribeUrl)) {
 			sent++
 		}
 	}
-	s.logger.Info("Sent reference interest rate update to %d of %d subscribers", sent, len(subscribers))
+	s.logger.Info("Sent reference interest rate update", "sent", sent, "subscribers", len(subscribers))
 }
 
 func ValidationUrl(config config.Config, subscriber subscriberrepo.Subscriber) string {
@@ -132,7 +132,7 @@ func (s *SendMail) send(msg message) bool {
 	auth := smtp.PlainAuth("", s.config.SMTP_Username, s.config.SMTP_Password, s.config.SMTP_Host)
 	err := smtp.SendMail(s.config.SMTP_Host+":"+s.config.SMTP_Port, auth, s.config.SMTP_Username, []string{msg.To}, buildMessage(msg))
 	if err != nil {
-		s.logger.Error("Failed to send mail to %s: %v", msg.To, err)
+		s.logger.Error("Failed to send mail", "to", msg.To, "error", err)
 		return false
 	}
 	return true

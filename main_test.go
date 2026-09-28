@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -43,7 +44,7 @@ func TestNotifiesWhenNewestRateChanges(t *testing.T) {
 	subscribers := mocks.NewSubscriberRepositoryMock(subscriberrepo.Subscriber{Id: "1", Email: "a@example.ch", EmailValidated: true})
 	mail := &mocks.SendMailMock{}
 
-	notifyOnNewInterestRate(mocks.NewLoggerMock(), parserStub{repo: repo, rates: []interestraterepo.InterestRate{rate(1.25, "2025-09-02")}}, repo, subscribers, mail)
+	notifyOnNewInterestRate(slog.New(slog.DiscardHandler), parserStub{repo: repo, rates: []interestraterepo.InterestRate{rate(1.25, "2025-09-02")}}, repo, subscribers, mail)
 
 	assert.Equal(t, 1, len(mail.Updates))
 	assert.Equal(t, 1.25, mail.Updates[0].Newest.ReferenceInterestRate)
@@ -56,7 +57,7 @@ func TestDoesNotNotifyForOlderAdditions(t *testing.T) {
 	repo.Insert(rate(1.25, "2025-09-02"))
 	mail := &mocks.SendMailMock{}
 
-	notifyOnNewInterestRate(mocks.NewLoggerMock(), parserStub{repo: repo, rates: []interestraterepo.InterestRate{rate(1.75, "2023-12-02")}}, repo, mocks.NewSubscriberRepositoryMock(), mail)
+	notifyOnNewInterestRate(slog.New(slog.DiscardHandler), parserStub{repo: repo, rates: []interestraterepo.InterestRate{rate(1.75, "2023-12-02")}}, repo, mocks.NewSubscriberRepositoryMock(), mail)
 
 	assert.Equal(t, 0, len(mail.Updates))
 }
@@ -65,7 +66,7 @@ func TestDoesNotNotifyOnFirstScrape(t *testing.T) {
 	repo := mocks.NewInterestRateRepositoryMock()
 	mail := &mocks.SendMailMock{}
 
-	notifyOnNewInterestRate(mocks.NewLoggerMock(), parserStub{repo: repo, rates: []interestraterepo.InterestRate{rate(1.5, "2025-06-03"), rate(1.25, "2025-09-02")}}, repo, mocks.NewSubscriberRepositoryMock(), mail)
+	notifyOnNewInterestRate(slog.New(slog.DiscardHandler), parserStub{repo: repo, rates: []interestraterepo.InterestRate{rate(1.5, "2025-06-03"), rate(1.25, "2025-09-02")}}, repo, mocks.NewSubscriberRepositoryMock(), mail)
 
 	assert.Equal(t, 2, len(repo.GetAll()))
 	assert.Equal(t, 0, len(mail.Updates))
@@ -76,7 +77,7 @@ func TestDoesNotNotifyWhenScrapeFails(t *testing.T) {
 	repo.Insert(rate(1.25, "2025-09-02"))
 	mail := &mocks.SendMailMock{}
 
-	notifyOnNewInterestRate(mocks.NewLoggerMock(), parserStub{repo: repo, err: errors.New("timeout")}, repo, mocks.NewSubscriberRepositoryMock(), mail)
+	notifyOnNewInterestRate(slog.New(slog.DiscardHandler), parserStub{repo: repo, err: errors.New("timeout")}, repo, mocks.NewSubscriberRepositoryMock(), mail)
 
 	assert.Equal(t, 0, len(mail.Updates))
 }

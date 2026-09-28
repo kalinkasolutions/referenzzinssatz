@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/kalinkasolutions/referenzzinssatz/logger"
+	"log/slog"
 )
 
 const DefaultReferenzZinssatzUrl = "https://www.bwo.admin.ch/de/entwicklung-referenzzinssatz-und-durchschnittszinssatz"
@@ -36,19 +36,19 @@ func (c Config) BaseUrl() string {
 	return "http://" + c.Domain
 }
 
-func LoadConfig(configPath string, logger logger.ILogger) Config {
-	logger.Info("Loading config from %s", configPath)
+func LoadConfig(configPath string, logger *slog.Logger) Config {
+	logger.Info("Loading config", "path", configPath)
 
 	configFile, err := os.ReadFile(configPath)
 	if err != nil {
-		logger.Error("Failed to open config at %s: %v", configPath, err)
+		logger.Error("Failed to open config", "path", configPath, "error", err)
 		os.Exit(1)
 	}
 
 	// The file holds secrets, so neither it nor its content ends up in the log.
 	var config Config
 	if err := json.Unmarshal(configFile, &config); err != nil {
-		logger.Error("Failed to parse config at %s: %v", configPath, err)
+		logger.Error("Failed to parse config", "path", configPath, "error", err)
 		os.Exit(1)
 	}
 
@@ -56,6 +56,6 @@ func LoadConfig(configPath string, logger logger.ILogger) Config {
 		config.ReferenzZinssatzUrl = DefaultReferenzZinssatzUrl
 	}
 
-	logger.Info("Config loaded, serving %s on port %s", config.BaseUrl(), config.Port)
+	logger.Info("Config loaded", "baseUrl", config.BaseUrl(), "port", config.Port)
 	return config
 }
