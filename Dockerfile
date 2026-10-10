@@ -6,7 +6,12 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o referenzzinssatz .
+# The release workflow passes the tag and commit; a plain `docker build` keeps the defaults in main.go.
+ARG VERSION="development build"
+ARG COMMIT_SHA="unknown"
+RUN CGO_ENABLED=1 go build -trimpath \
+    -ldflags="-s -w -X 'main.version=${VERSION}' -X 'main.commit=${COMMIT_SHA}'" \
+    -o referenzzinssatz .
 
 FROM debian:bookworm-slim
 RUN set -eux; \

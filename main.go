@@ -29,6 +29,12 @@ const (
 	dateFormat     = "2006-01-02"
 )
 
+// Set at build time by the Dockerfile through -ldflags "-X main.version=... -X main.commit=...".
+var (
+	version = "development build"
+	commit  = "unknown"
+)
+
 func main() {
 	consoleLevel := new(slog.LevelVar)
 	console := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: consoleLevel})
@@ -53,6 +59,8 @@ func main() {
 		logger = slog.New(slog.NewMultiHandler(handlers...))
 		logger.Info("Shipping logs to Loki", "url", loki.PushUrl(config.Loki.Url))
 	}
+	// After Loki joins, so the running version can be looked up there.
+	logger.Info("Running referenzzinssatz", "version", version, "commit", commit)
 
 	db := datalayer.NewDb(logger, config)
 	logRepo := logrepo.NewLogRepository(db)
